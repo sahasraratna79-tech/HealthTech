@@ -22,6 +22,15 @@ For a no-install visual preview of the website, run `node website/serve.mjs` and
 
 For a production frontend build, run `npm run build`; start the API with `npm start`. Serve the generated `dist/` directory from a static host configured to proxy `/api` to the Express server. Configure HTTPS, CORS restrictions, request rate limiting, and provider usage limits before exposing the service publicly.
 
+## Split deployment (Vercel + Render)
+
+This repository stores StudyMate AI under `studymate-ai/` inside the existing HealthTech repository. Configure both services to use the `codex/studymate-ai` branch and this app directory as their root directory.
+
+- **Render web service:** Root Directory `studymate-ai`; Build Command `npm install`; Start Command `npm start`; Health Check Path `/api/health`. Add `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`, and `CORS_ORIGINS` in the Render service environment. Set `CORS_ORIGINS` to the exact Vercel site origin (for example `https://your-site.vercel.app`). Render supplies `PORT`.
+- **Vercel frontend:** Root Directory `studymate-ai`; Framework Preset `Vite`; Build Command `npm run build`; Output Directory `dist`. Set `VITE_API_BASE_URL` to the Render service origin (for example `https://your-api.onrender.com`). This value is public frontend configuration; never put the AI key in Vercel.
+
+Deploy the Render backend first to obtain its URL, then configure and deploy the Vercel frontend. After obtaining the Vercel production URL, set that exact origin in Render's `CORS_ORIGINS` and redeploy the backend.
+
 ## Features and behavior
 
 - Marks selector (Auto, 2, 5, 10, 15) and subject/preferences are included in the server-side tutor prompt.

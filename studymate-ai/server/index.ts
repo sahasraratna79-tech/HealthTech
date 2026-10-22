@@ -5,7 +5,10 @@ import multer from 'multer';
 import pdfParse from 'pdf-parse';
 import { z } from 'zod';
 
-const app=express(); app.use(cors()); app.use(express.json({limit:'1mb'}));
+const app=express();
+const allowedOrigins=(process.env.CORS_ORIGINS||'http://localhost:5173').split(',').map(origin=>origin.trim()).filter(Boolean);
+app.use(cors({origin:(origin,callback)=>{if(!origin||allowedOrigins.includes(origin))return callback(null,true);callback(new Error('This website origin is not allowed by the API server.'));}}));
+app.use(express.json({limit:'1mb'}));
 const maxMb=Number(process.env.MAX_PDF_MB||15);
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:maxMb*1024*1024},fileFilter:(_req,file,cb)=>file.mimetype==='application/pdf'?cb(null,true):cb(new Error('Please select a PDF file.'))});
 const aiSchema=z.object({question:z.string().trim().min(1).max(12000),marks:z.enum(['Auto','2','5','10','15']).default('Auto'),subject:z.string().max(100).default(''),preferences:z.array(z.string()).max(12).default([]),history:z.array(z.object({role:z.enum(['user','assistant']),content:z.string().max(12000)})).max(16).default([])});
@@ -29,4 +32,4 @@ app.post('/api/pdf/extract',upload.single('file'),async(req,res)=>{
  catch(error){console.error('PDF extraction failed',error);res.status(422).json({error:'This PDF could not be read. It may be encrypted, damaged, or unsupported.'});}
 });
 app.use((err:Error,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{if(err instanceof multer.MulterError&&err.code==='LIMIT_FILE_SIZE')return res.status(413).json({error:`PDF is too large. Maximum size is ${maxMb} MB.`});res.status(400).json({error:err.message||'Upload could not be processed.'});});
-const port=Number(process.env.PORT||8787); app.listen(port,()=>console.log(`StudyMate API listening on http://localhost:${port}`));
+const port=Number(process.env.PORT||8787); app.listen(port,'0.0.0.0',()=>console.log(`StudyMate API listening on port ${port}`));
